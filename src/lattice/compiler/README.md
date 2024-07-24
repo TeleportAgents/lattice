@@ -1,16 +1,24 @@
-To refine the code to extract the definitions of functions from their respective modules, we need to enhance the graph-building process to include function definitions and their respective modules. This way, we can map each function call back to its definition within the corresponding module. 
+To extend the script to include the literal definitions of functions from their respective Python files and add them as data to nodes, we can use the `ast` module to extract the function definitions and `networkx` to create and manipulate the graph. This will allow us to store and visualize the relationships between functions along with their code definitions.
 
-Here’s a refined version of the script that extracts function definitions from their respective modules and constructs a more detailed graph:
+First, you'll need to install the `networkx` library if you haven't already:
+
+```bash
+pip install networkx
+```
+
+Here’s the updated script:
 
 ```python
 import ast
 import os
-from typing import Dict, List, Tuple
+import networkx as nx
+from typing import Dict, Tuple
 
 class FunctionNode:
-    def __init__(self, name: str, module: str):
+    def __init__(self, name: str, module: str, definition: str):
         self.name = name
         self.module = module
+        self.definition = definition
         self.calls = []
 
     def add_call(self, call: Tuple[str, str]):
@@ -18,14 +26,20 @@ class FunctionNode:
 
 def parse_functions(file_path: str) -> Dict[str, FunctionNode]:
     with open(file_path, 'r') as file:
-        tree = ast.parse(file.read(), filename=file_path)
+        source_code = file.read()
+        tree = ast.parse(source_code, filename=file_path)
 
     functions = {}
     module_name = os.path.splitext(os.path.basename(file_path))[0]
 
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef):
-            function_node = FunctionNode(node.name, module_name)
+            # Extract the source code for the function definition
+            start_lineno = node.lineno - 1
+            end_lineno = node.end_lineno if hasattr(node, 'end_lineno') else node.body[-1].lineno
+            function_def = "\n".join(source_code.splitlines()[start_lineno:end_lineno])
+
+            function_node = FunctionNode(node.name, module_name, function_def)
             functions[node.name] = function_node
 
             for child in ast.walk(node):
@@ -34,7 +48,7 @@ def parse_functions(file_path: str) -> Dict[str, FunctionNode]:
 
     return functions
 
-def find_main_function(project_path: str) -> Dict[str, Dict[str, FunctionNode]]:
+def find_main_function(project_path: str) -> Tuple[Dict[str, Dict[str, FunctionNode]], Dict[str, FunctionNode]]:
     main_functions = {}
     all_functions = {}
 
@@ -49,23 +63,18 @@ def find_main_function(project_path: str) -> Dict[str, Dict[str, FunctionNode]]:
 
     return main_functions, all_functions
 
-def build_graph(main_functions: Dict[str, Dict[str, FunctionNode]], all_functions: Dict[str, FunctionNode]):
-    graph = {}
+def build_graph(main_functions: Dict[str, Dict[str, FunctionNode]], all_functions: Dict[str, FunctionNode]) -> nx.DiGraph:
+    graph = nx.DiGraph()
 
     for file_path, functions in main_functions.items():
         main_func = functions.get('main')
         if main_func:
-            graph['main'] = {
-                'module': main_func.module,
-                'calls': []
-            }
+            graph.add_node(main_func.name, module=main_func.module, definition=main_func.definition)
             for call, module in main_func.calls:
                 if call in all_functions:
-                    graph['main']['calls'].append({
-                        'name': call,
-                        'module': module,
-                        'calls': all_functions[call].calls
-                    })
+                    called_func = all_functions[call]
+                    graph.add_node(called_func.name, module=called_func.module, definition=called_func.definition)
+                    graph.add_edge(main_func.name, called_func.name)
 
     return graph
 
@@ -76,12 +85,15 @@ def main(project_path: str):
         return
 
     graph = build_graph(main_functions, all_functions)
-    
+
     # Print the graph
-    for func, details in graph.items():
-        print(f"Function '{func}' (Module: {details['module']}) calls:")
-        for call in details['calls']:
-            print(f"  - {call['name']} (Module: {call['module']}) calls: {', '.join(c[0] for c in call['calls'])}")
+    for node in graph.nodes(data=True):
+        print(f"Function '{node[0]}' in module '{node[1]['module']}':")
+        print(node[1]['definition'])
+        print("Calls:")
+        for successor in graph.successors(node[0]):
+            print(f"  - {successor} (Module: {graph.nodes[successor]['module']})")
+        print()
 
 if __name__ == "__main__":
     project_path = input("Enter the path to the Python project: ")
@@ -91,21 +103,21 @@ if __name__ == "__main__":
 ### Explanation
 
 1. **FunctionNode Class:**
-   - The `FunctionNode` class now includes a `module` attribute to keep track of which module (file) each function belongs to.
+   - Now includes a `definition` attribute to store the literal definition of the function.
 
 2. **parse_functions Function:**
-   - This function parses each file to extract function definitions and their calls, associating each function with its module (file name).
+   - Extracts the literal source code of each function and stores it in the `definition` attribute of `FunctionNode`.
 
 3. **find_main_function Function:**
-   - This function traverses the project directory to locate all functions and specifically identifies the `main.py` file and its `main` function. It returns both the `main` function and a dictionary of all functions in the project.
+   - Traverses the project directory to locate all functions and specifically identifies the `main.py` file and its `main` function.
 
 4. **build_graph Function:**
-   - This function constructs a graph-like dictionary where each function name maps to its module and the functions it calls, including the modules of those called functions.
+   - Uses `networkx` to create a directed graph (`DiGraph`), where each node represents a function with its name, module, and definition. Edges represent function calls.
 
 5. **main Function:**
-   - This function orchestrates the overall process, starting with finding the main functions, then building and printing the graph.
+   - Orchestrates the overall process, starting with finding the main functions, then building and printing the graph.
 
 6. **Printing the Graph:**
-   - The graph is printed with function names and their corresponding modules, along with the functions they call and the modules of those called functions.
+   - The graph is printed with function names, their corresponding modules, and their literal definitions, along with the functions they call.
 
-This refined script provides a more detailed view of the relationships between functions in the `main.py` file and the functions they call, along with their respective modules. You can further extend this script to include more details or handle more complex scenarios as needed.
+This script provides a detailed view of the relationships between functions in the `main.py` file and the functions they call, along with their respective definitions. You can extend this script further to include more details or handle more complex scenarios as needed.
