@@ -1,4 +1,12 @@
+import os
+import json
+
 import pandas as pd
+from dotenv import load_dotenv
+from together import Together
+from openai import OpenAI
+
+from src.lattice.llm.together import get_together_chat_response, get_together_embedding
 
 ENTITY = {
     "id": [
@@ -308,10 +316,53 @@ RELATIONSHIP = {
 
 
 def main():
+    load_dotenv()
+    together_api_key = os.getenv('TOGETHER_API_KEY')
+    together_llm_client = Together(api_key=together_api_key)
+    embedding_client = OpenAI(api_key=together_api_key, base_url="https://api.together.xyz/v1")
+    together_llm_model_name = "meta-llama/Llama-3-70b-chat-hf"
+    together_embedding_model_name = "togethercomputer/m2-bert-80M-32k-retrieval"
+
     entity = pd.DataFrame.from_dict(data=ENTITY)
     relationship = pd.DataFrame.from_dict(data=RELATIONSHIP)
-    # TODO: indexing the entities and relationships using an LLM
-    # TODO: save the data in storage to be used as sample data for developing the retriever
+
+    for idx, row in entity.iterrows():
+        function_name = row['function_name']
+        definition = row['definition']
+
+        prompt = f"""
+        You are and expert software engineering having deep knowledge about all parts of software development.
+        I want you to read this code and give a thorough explanation of what it does.
+        I want to use these explanations to index the code in a RAG system to retrieve this code if user asks anything that might 
+        be solved with this piece of code. 
+        Please provide your answer in a Python Dict format like below:
+        {{
+            "description": <THOROUGH EXPLANATION OF THE CODE THAT IS USED IN A RAG SYSTEM>
+        }}
+        I don't want any further explanation. ONLY RETURN THE PYTHON DICT ANSWER.
+        CODE:
+        {definition}
+        """
+        llm_response = get_together_chat_response(prompt=prompt,
+                                                  together_llm_client=together_llm_client,
+                                                  together_llm_model_name=together_llm_model_name)
+        description = json.loads(llm_response)['description']
+
+        # embed description
+        description_emb = get_together_embedding(text=description,
+                                                 together_embedding_client=embedding_client,
+                                                 together_model_name=together_embedding_model_name)
+        # embed function_name
+        function_name_emb = get_together_embedding(text=function_name,
+                                                   together_embedding_client=embedding_client,
+                                                   together_model_name=together_embedding_model_name)
+
+        entity.loc[idx, "description"] = description
+        entity.loc[idx, "function_name_embedding"] = str(function_name_emb)
+        entity.loc[idx, "description_embedding"] = str(description_emb)
+
+    entity.to_csv("entity.csv", index=False)
+    relationship.to_csv("relationship.csv", index=False)
 
 
 if __name__ == "__main__":
