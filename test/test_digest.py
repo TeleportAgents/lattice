@@ -38,3 +38,10 @@ class TestDigest(unittest.TestCase):
 
         for child in expand_definition(definition):
             print(child)
+
+    def test_literal_to_standard(self) -> None:
+        definition = "def main(*args):\n    print(sum(args))"
+        semantic = literal_to_standard(definition)
+
+        true_semantic = "def main(*args):\n    sum_args = sum(args)\n   print(sum_args)"
+        self.assertEqual(semantic, true_semantic)
