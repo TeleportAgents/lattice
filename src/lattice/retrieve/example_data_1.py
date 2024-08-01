@@ -348,6 +348,11 @@ def main():
                                                   together_llm_model_name=together_llm_model_name)
         description = json.loads(llm_response)['description']
 
+        # embed definition
+        definition_emb = get_together_embedding(text=definition,
+                                                together_embedding_client=embedding_client,
+                                                together_model_name=together_embedding_model_name)
+
         # embed description
         description_emb = get_together_embedding(text=description,
                                                  together_embedding_client=embedding_client,
@@ -358,6 +363,7 @@ def main():
                                                    together_model_name=together_embedding_model_name)
 
         entity.loc[idx, "description"] = description
+        entity.loc[idx, "definition_embedding"] = str(definition_emb)
         entity.loc[idx, "function_name_embedding"] = str(function_name_emb)
         entity.loc[idx, "description_embedding"] = str(description_emb)
 
