@@ -1,7 +1,10 @@
 from typing import List
 
+import numpy as np
 from together import Together
 from openai import OpenAI
+
+from src.lattice.retrieve.utils import normalize_embeddings
 
 
 def get_together_chat_response(
@@ -22,9 +25,18 @@ def get_together_chat_response(
     return llm_response
 
 
-def get_together_embedding(text: str,
-                           together_embedding_client: OpenAI,
-                           together_model_name: str) -> List[float]:
+def get_together_embedding(
+        text: str,
+        together_embedding_client: OpenAI,
+        together_model_name: str,
+        normalize_embedding: bool = False
+) -> List[float]:
     text = text.replace("\n", " ")
-    return together_embedding_client.embeddings.create(input=[text],
-                                                       model=together_model_name).data[0].embedding
+    emb = together_embedding_client.embeddings.create(input=[text],
+                                                      model=together_model_name).data[0].embedding
+    if normalize_embedding:
+        emb = np.array(emb)
+        emb = np.expand_dims(emb, axis=0)
+        emb = normalize_embeddings(x=emb)
+        emb = emb.reshape(-1, ).tolist()
+    return emb
