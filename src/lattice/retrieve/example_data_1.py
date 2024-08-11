@@ -1,13 +1,3 @@
-import os
-import json
-
-import pandas as pd
-from dotenv import load_dotenv
-from together import Together
-from openai import OpenAI
-
-from src.lattice.llm.together import get_together_chat_response, get_together_embedding
-
 ENTITY = {
     "id": [
         "87385df0-d775-4400-a07e-fdf811903c1b",
@@ -52,21 +42,21 @@ ENTITY = {
                 "Excellent service and wonderful quality.",
                 "Not worth the price, very disappointed."
             ]
-        
+
             ratings = [5, 1, 4, 2, 3, 5, 4, 1]
-        
+
             # Analyze text reviews
             positive, negative = analyze_text_reviews(text_reviews)
-        
+
             # Analyze numerical ratings
             average, distribution = analyze_numerical_ratings(ratings)
-        
+
             # Print the results
             print("Positive words:", positive)
             print("Negative words:", negative)
             print(f"Average rating: {average:.2f}")
             print("Rating distribution:", distribution)
-        
+
             # Visualize the results
             fig1 = visualize_word_counts(positive, negative)
             fig2 = visualize_rating_distribution(distribution)
@@ -76,12 +66,12 @@ ENTITY = {
         def analyze_text_reviews(texts: List[str]) -> Tuple[List[str], List[str]]:
             \"\"\"
             Analyze the text reviews to extract and categorize words.
-        
+
             Parameters
             ----------
             texts : List[str]
                 A list of customer text reviews.
-        
+
             Returns
             -------
             Tuple[List[str], List[str]]
@@ -95,12 +85,12 @@ ENTITY = {
         def extract_words(texts: List[str]) -> List[str]:
             \"\"\"
             Extract words from a list of text reviews.
-        
+
             Parameters
             ----------
             texts : List[str]
                 A list of customer text reviews.
-        
+
             Returns
             -------
             List[str]
@@ -115,12 +105,12 @@ ENTITY = {
         def categorize_words(words: List[str]) -> Tuple[List[str], List[str]]:
             \"\"\"
             Categorize words into positive and negative categories.
-        
+
             Parameters
             ----------
             words : List[str]
                 A list of words to categorize.
-        
+
             Returns
             -------
             Tuple[List[str], List[str]]
@@ -129,28 +119,28 @@ ENTITY = {
             # Sample positive and negative word lists
             positive_words = {"fantastic", "great", "excellent", "wonderful"}
             negative_words = {"terrible", "broke", "disappointed"}
-        
+
             positive = []
             negative = []
-        
+
             for word in words:
                 if word in positive_words:
                     positive.append(word)
                 elif word in negative_words:
                     negative.append(word)
-        
+
             return positive, negative
         """,
         """
         def analyze_numerical_ratings(ratings: List[int]) -> Tuple[float, Dict[str, int]]:
             \"\"\"
             Analyze the numerical ratings to compute average and distribution.
-        
+
             Parameters
             ----------
             ratings : List[int]
                 A list of numerical ratings.
-        
+
             Returns
             -------
             Tuple[float, Dict[str, int]]
@@ -164,12 +154,12 @@ ENTITY = {
         def calculate_average(ratings: List[int]) -> float:
             \"\"\"
             Calculate the average of the ratings.
-        
+
             Parameters
             ----------
             ratings : List[int]
                 A list of numerical ratings.
-        
+
             Returns
             -------
             float
@@ -181,12 +171,12 @@ ENTITY = {
         def rating_distribution(ratings: List[int]) -> Dict[str, int]:
             \"\"\"
             Determine the distribution of ratings in defined bins.
-        
+
             Parameters
             ----------
             ratings : List[int]
                 A list of numerical ratings.
-        
+
             Returns
             -------
             Dict[str, int]
@@ -210,14 +200,14 @@ ENTITY = {
         def visualize_word_counts(positive: List[str], negative: List[str]) -> plt.Figure:
             \"\"\"
             Visualize the count of positive and negative words.
-        
+
             Parameters
             ----------
             positive : List[str]
                 List of positive words.
             negative : List[str]
                 List of negative words.
-        
+
             Returns
             -------
             plt.Figure
@@ -234,12 +224,12 @@ ENTITY = {
         def visualize_rating_distribution(distribution: Dict[str, int]) -> plt.Figure:
             \"\"\"
             Visualize the normalized histogram of rating distribution.
-        
+
             Parameters
             ----------
             distribution : Dict[str, int]
                 Dictionary with the rating distribution.
-        
+
             Returns
             -------
             plt.Figure
@@ -313,63 +303,3 @@ RELATIONSHIP = {
         "plt.Figure"
     ]
 }
-
-
-def main():
-    load_dotenv()
-    together_api_key = os.getenv('TOGETHER_API_KEY')
-    together_llm_client = Together(api_key=together_api_key)
-    embedding_client = OpenAI(api_key=together_api_key, base_url="https://api.together.xyz/v1")
-    together_llm_model_name = "meta-llama/Llama-3-70b-chat-hf"
-    together_embedding_model_name = "togethercomputer/m2-bert-80M-32k-retrieval"
-
-    entity = pd.DataFrame.from_dict(data=ENTITY)
-    relationship = pd.DataFrame.from_dict(data=RELATIONSHIP)
-
-    for idx, row in entity.iterrows():
-        function_name = row['function_name']
-        definition = row['definition']
-
-        prompt = f"""
-        You are and expert software engineering having deep knowledge about all parts of software development.
-        I want you to read this code and give a thorough explanation of what it does.
-        I want to use these explanations to index the code in a RAG system to retrieve this code if user asks anything that might 
-        be solved with this piece of code. 
-        Please provide your answer in a Python Dict format like below:
-        {{
-            "description": <THOROUGH EXPLANATION OF THE CODE THAT IS USED IN A RAG SYSTEM>
-        }}
-        I don't want any further explanation. ONLY RETURN THE PYTHON DICT ANSWER.
-        CODE:
-        {definition}
-        """
-        llm_response = get_together_chat_response(prompt=prompt,
-                                                  together_llm_client=together_llm_client,
-                                                  together_llm_model_name=together_llm_model_name)
-        description = json.loads(llm_response)['description']
-
-        # embed definition
-        definition_emb = get_together_embedding(text=definition,
-                                                together_embedding_client=embedding_client,
-                                                together_model_name=together_embedding_model_name)
-
-        # embed description
-        description_emb = get_together_embedding(text=description,
-                                                 together_embedding_client=embedding_client,
-                                                 together_model_name=together_embedding_model_name)
-        # embed function_name
-        function_name_emb = get_together_embedding(text=function_name,
-                                                   together_embedding_client=embedding_client,
-                                                   together_model_name=together_embedding_model_name)
-
-        entity.loc[idx, "description"] = description
-        entity.loc[idx, "definition_embedding"] = str(definition_emb)
-        entity.loc[idx, "function_name_embedding"] = str(function_name_emb)
-        entity.loc[idx, "description_embedding"] = str(description_emb)
-
-    entity.to_csv("entity.csv", index=False)
-    relationship.to_csv("relationship.csv", index=False)
-
-
-if __name__ == "__main__":
-    main()
