@@ -20,7 +20,7 @@ def index(
         keyword_extraction_prompt_template: str,
         together_llm_client: Union[Together],
         together_llm_model_name: str,
-        embedding_client: Union[OpenAI],
+        together_embedding_client: Union[OpenAI],
         together_embedding_model_name: str,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     # processing entity rows
@@ -30,13 +30,13 @@ def index(
 
         # embedding function_name
         function_name_emb = get_together_embedding(text=function_name,
-                                                   together_embedding_client=embedding_client,
+                                                   together_embedding_client=together_embedding_client,
                                                    together_model_name=together_embedding_model_name,
                                                    normalize_embedding=True)
         entity.loc[idx, "function_name_embedding"] = str(function_name_emb)
         # embedding definition
         definition_emb = get_together_embedding(text=definition,
-                                                together_embedding_client=embedding_client,
+                                                together_embedding_client=together_embedding_client,
                                                 together_model_name=together_embedding_model_name,
                                                 normalize_embedding=True)
         entity.loc[idx, "definition_embedding"] = str(definition_emb)
@@ -52,7 +52,7 @@ def index(
 
         # embedding description
         description_emb = get_together_embedding(text=description,
-                                                 together_embedding_client=embedding_client,
+                                                 together_embedding_client=together_embedding_client,
                                                  together_model_name=together_embedding_model_name,
                                                  normalize_embedding=True)
         entity.loc[idx, "description_embedding"] = str(description_emb)
@@ -71,7 +71,7 @@ def index(
         keywords_embedding_columns = []
         for keyword_idx, keyword in enumerate(keywords):
             keyword_emb = get_together_embedding(text=keyword,
-                                                 together_embedding_client=embedding_client,
+                                                 together_embedding_client=together_embedding_client,
                                                  together_model_name=together_embedding_model_name,
                                                  normalize_embedding=True)
 
@@ -87,7 +87,7 @@ def index(
             ["definition_embedding", "function_name_embedding", "description_embedding"] +
             keywords_embedding_columns
         ]
-        return entity, relationship
+    return entity, relationship
 
 
 def main():
@@ -95,7 +95,7 @@ def main():
     load_dotenv()
     together_api_key = os.getenv('TOGETHER_API_KEY')
     together_llm_client = Together(api_key=together_api_key)
-    embedding_client = OpenAI(api_key=together_api_key, base_url="https://api.together.xyz/v1")
+    together_embedding_client = OpenAI(api_key=together_api_key, base_url="https://api.together.xyz/v1")
     together_llm_model_name = "meta-llama/Llama-3-70b-chat-hf"
     together_embedding_model_name = "togethercomputer/m2-bert-80M-32k-retrieval"
 
@@ -116,7 +116,7 @@ def main():
                                  keyword_extraction_prompt_template=keyword_extraction_prompt_template,
                                  together_llm_client=together_llm_client,
                                  together_llm_model_name=together_llm_model_name,
-                                 embedding_client=embedding_client,
+                                 together_embedding_client=together_embedding_client,
                                  together_embedding_model_name=together_embedding_model_name)
 
     # saving processed dataframes
