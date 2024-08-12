@@ -55,10 +55,13 @@ class TestDigest(unittest.TestCase):
         self.assertEqual(f.definition, true_definition)
 
     def test_iterate_over_functions_directory(self) -> None:
-        true_names = [
-            'analyze_text_reviews',
-            'extract_words',
-            'categorize_words'
-        ]
+        true_names = ["analyze_text_reviews", "extract_words", "categorize_words"]
         for f in iterate_over_functions_project("test/props/example_directory"):
             self.assertIn(f.name, true_names)
+
+    def test_literal_to_standard(self) -> None:
+        definition = "def main(*args):\n    print(sum(args))"
+        semantic = literal_to_standard(definition)
+
+        true_semantic = "def main(*args):\n    sum_args = sum(args)\n   print(sum_args)"
+        self.assertEqual(semantic, true_semantic)
