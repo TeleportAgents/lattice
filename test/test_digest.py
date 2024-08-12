@@ -5,6 +5,8 @@ from src.lattice.compiler.digest import (
     analyze_function,
     extract_definition,
     expand_definition,
+    iterate_over_functions_script,
+    iterate_over_functions_project,
 )
 
 
@@ -38,3 +40,25 @@ class TestDigest(unittest.TestCase):
 
         for child in expand_definition(definition):
             print(child)
+
+    def test_iterate_over_functions_script(self) -> None:
+        functions = [
+            f for f in iterate_over_functions_script("test/props/digest_main.py")
+        ]
+
+        self.assertEqual(len(functions), 1)
+
+        f = functions[0]
+        true_name = "main"
+        true_definition = "def main(*args):\n    print(sum(args))"
+        self.assertEqual(f.name, true_name)
+        self.assertEqual(f.definition, true_definition)
+
+    def test_iterate_over_functions_directory(self) -> None:
+        true_names = [
+            'analyze_text_reviews',
+            'extract_words',
+            'categorize_words'
+        ]
+        for f in iterate_over_functions_project("test/props/example_directory"):
+            self.assertIn(f.name, true_names)
