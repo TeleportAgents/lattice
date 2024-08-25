@@ -5,12 +5,6 @@ from typing import Tuple
 import numpy as np
 
 
-def normalize_embeddings(x: np.ndarray) -> np.ndarray:
-    norms = np.linalg.norm(x, axis=1, keepdims=True)
-    normalized_embeddings = x / norms
-    return normalized_embeddings
-
-
 def separate_docstring_and_code(source_code: str) -> Tuple[str, str]:
     """
     Separates the docstring and code from the given source code.
