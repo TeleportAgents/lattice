@@ -16,11 +16,12 @@ from src.lattice.llm.together import get_together_chat_response, get_together_em
 from paths import ROOT_PROJECT_PATH
 
 
-def get_db_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
-    entity_path = os.path.join(ROOT_PROJECT_PATH, "src", "lattice", "retrieve", "entity.csv")
-    relationship_path = os.path.join(ROOT_PROJECT_PATH, "src", "lattice", "retrieve", "relationship.csv")
+def get_db_data(entity_path: str, relationship_path=None) -> Tuple[pd.DataFrame, pd.DataFrame]:
     entity = pd.read_csv(entity_path)
-    relationship = pd.read_csv(relationship_path)
+    if relationship_path:
+        relationship = pd.read_csv(relationship_path)
+    else:
+        relationship = None
     return entity, relationship
 
 
@@ -77,6 +78,7 @@ def bm25_search(
 
 
 def retrieve(
+        entity: pd.DataFrame,
         query: str,
         num_keywords: int,
         keyword_extraction_prompt_template: str,
@@ -91,7 +93,7 @@ def retrieve(
         "The argument score_type must be either 'normalized_inner_product_score' or 'normalized_l2_score'."
 
     # loading entity and relation data
-    entity, relationship = get_db_data()
+    # entity, relationship = get_db_data()
 
     # Loading the embeddings of data
     entity_embeddings = get_entity_embeddings(entity=entity, num_keywords=num_keywords)
@@ -164,6 +166,11 @@ def main():
     together_llm_model_name = "meta-llama/Llama-3-70b-chat-hf"
     together_embedding_model_name = "togethercomputer/m2-bert-80M-32k-retrieval"
 
+    entity_path = os.path.join(ROOT_PROJECT_PATH, "src", "lattice", "retrieve", "entity.csv")
+    relationship_path = os.path.join(ROOT_PROJECT_PATH, "src", "lattice", "retrieve", "relationship.csv")
+
+    entity, relationship = get_db_data(entity_path, relationship_path)
+
     # reading prompt templates
     config = configparser.ConfigParser()
     config.read(os.path.join(ROOT_PROJECT_PATH, 'src', 'lattice', 'retrieve', 'prompt.ini'))
@@ -172,14 +179,18 @@ def main():
     # calling the retrieve function
     query = "I want a function that visualizes a histogram."
     num_keywords = 10
-    result = retrieve(query=query,
-                      num_keywords=num_keywords,
-                      keyword_extraction_prompt_template=keyword_extraction_prompt_template,
-                      together_llm_client=together_llm_client,
-                      together_llm_model_name=together_llm_model_name,
-                      together_embedding_client=together_embedding_client,
-                      together_embedding_model_name=together_embedding_model_name,
-                      score_type="normalized_l2_score")
+    result = retrieve(
+        entity=entity,
+        relationship=relationship,
+        query=query,
+        num_keywords=num_keywords,
+        keyword_extraction_prompt_template=keyword_extraction_prompt_template,
+        together_llm_client=together_llm_client,
+        together_llm_model_name=together_llm_model_name,
+        together_embedding_client=together_embedding_client,
+        together_embedding_model_name=together_embedding_model_name,
+        score_type="normalized_l2_score"
+    )
     print("Input Query:")
     print(query)
     print("Result:")
