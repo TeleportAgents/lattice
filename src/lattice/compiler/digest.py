@@ -104,7 +104,7 @@ def iterate_over_functions_script(file_path: str) -> Generator:
             )
 
 
-def iterate_over_functions_project(directory: str, deep=True, exclude=[]) -> Generator:
+def iterate_over_functions_project(directory: str, deep=True, exclude=[]) -> Generator[Function]:
     _, directories, files = next(walk(directory))
     for file in files:
         if file.split(".")[-1] == "py":
