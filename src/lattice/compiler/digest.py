@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Iterator
 
 import ast
 from os import walk, path
@@ -37,7 +37,7 @@ def extract_definition(script: jedi.Script, name: str) -> str:
     return function_source
 
 
-def expand_definition(function_source: str) -> Generator:
+def expand_definition(function_source: str) -> Iterator:
     node = ast.parse(function_source)
 
     for child in ast.walk(node):
@@ -90,7 +90,7 @@ def analyze_function(file_path, function_name):
     return function_source, function_calls
 
 
-def iterate_over_functions_script(file_path: str) -> Generator:
+def iterate_over_functions_script(file_path: str) -> Iterator[Function]:
     with open(file_path, "r") as file:
         source = file.read()
 
@@ -104,7 +104,7 @@ def iterate_over_functions_script(file_path: str) -> Generator:
             )
 
 
-def iterate_over_functions_project(directory: str, deep=True, exclude=[]) -> Generator[Function]:
+def iterate_over_functions_project(directory: str, deep=True, exclude=[]) -> Iterator[Function]:
     _, directories, files = next(walk(directory))
     for file in files:
         if file.split(".")[-1] == "py":
