@@ -4,7 +4,10 @@ import numpy as np
 from together import Together
 from openai import OpenAI
 
-from src.lattice.retrieve.utils import normalize_embeddings
+def normalize_embeddings(x: np.ndarray) -> np.ndarray:
+    norms = np.linalg.norm(x, axis=1, keepdims=True)
+    normalized_embeddings = x / norms
+    return normalized_embeddings
 
 
 def get_together_chat_response(
