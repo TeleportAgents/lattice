@@ -159,18 +159,14 @@ def rating_distribution(ratings: List[int]) -> Dict[str, int]:
     Dict[str, int]
         A dictionary with the count of ratings in each bin.
     """
-    distribution = {
-        '1-2': 0,
-        '3-4': 0,
-        '5': 0
-    }
+    distribution = {"1-2": 0, "3-4": 0, "5": 0}
     for rating in ratings:
         if 1 <= rating <= 2:
-            distribution['1-2'] += 1
+            distribution["1-2"] += 1
         elif 3 <= rating <= 4:
-            distribution['3-4'] += 1
+            distribution["3-4"] += 1
         elif rating == 5:
-            distribution['5'] += 1
+            distribution["5"] += 1
     return distribution
 
 
@@ -191,9 +187,11 @@ def visualize_word_counts(positive: List[str], negative: List[str]) -> plt.Figur
         The matplotlib figure object with the visualization.
     """
     fig, ax = plt.subplots(figsize=(6, 4))
-    ax.bar(['Positive', 'Negative'], [len(positive), len(negative)], color=['green', 'red'])
-    ax.set_title('Count of Positive and Negative Words')
-    ax.set_ylabel('Count')
+    ax.bar(
+        ["Positive", "Negative"], [len(positive), len(negative)], color=["green", "red"]
+    )
+    ax.set_title("Count of Positive and Negative Words")
+    ax.set_ylabel("Count")
     plt.tight_layout()
     return fig
 
@@ -214,10 +212,14 @@ def visualize_rating_distribution(distribution: Dict[str, int]) -> plt.Figure:
     """
     fig, ax = plt.subplots(figsize=(6, 4))
     total_ratings = sum(distribution.values())
-    normalized_distribution = {key: value / total_ratings for key, value in distribution.items()}
-    ax.bar(normalized_distribution.keys(), normalized_distribution.values(), color='blue')
-    ax.set_title('Normalized Rating Distribution')
-    ax.set_ylabel('Proportion')
+    normalized_distribution = {
+        key: value / total_ratings for key, value in distribution.items()
+    }
+    ax.bar(
+        normalized_distribution.keys(), normalized_distribution.values(), color="blue"
+    )
+    ax.set_title("Normalized Rating Distribution")
+    ax.set_ylabel("Proportion")
     plt.tight_layout()
     return fig
 
@@ -228,7 +230,7 @@ def main():
         "The product is fantastic and works great!",
         "Terrible experience, it broke in two days.",
         "Excellent service and wonderful quality.",
-        "Not worth the price, very disappointed."
+        "Not worth the price, very disappointed.",
     ]
 
     ratings = [5, 1, 4, 2, 3, 5, 4, 1]
