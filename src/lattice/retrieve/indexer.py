@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 from together import Together
 from openai import OpenAI
 
-from src.lattice.llm.together import get_together_chat_response, get_together_embedding
-from src.lattice.retrieve.example_data_1 import ENTITY, RELATIONSHIP
-from paths import ROOT_PROJECT_PATH
+from ..llm.together import get_together_chat_response, get_together_embedding
+from ..retrieve.example_data_1 import ENTITY, RELATIONSHIP
+from ..retrieve import prompts
 
 
 def index(
@@ -121,12 +121,8 @@ def main():
     together_embedding_model_name = "togethercomputer/m2-bert-80M-32k-retrieval"
 
     # reading prompt templates
-    config = configparser.ConfigParser()
-    config.read(
-        os.path.join(ROOT_PROJECT_PATH, "src", "lattice", "retrieve", "prompt.ini")
-    )
-    keyword_extraction_prompt_template = config["prompts"]["keyword_extraction"]
-    description_extraction_prompt_template = config["prompts"]["description_extraction"]
+    keyword_extraction_prompt_template = prompts.keyword_extraction
+    description_extraction_prompt_template = prompts.description_extraction
 
     # reading raw data and creating dataframes
     entity = pd.DataFrame.from_dict(data=ENTITY)

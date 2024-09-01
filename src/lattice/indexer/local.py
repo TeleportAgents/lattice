@@ -11,10 +11,10 @@ from dotenv import load_dotenv
 from together import Together
 from openai import OpenAI
 
-from src.lattice.llm.together import get_together_chat_response, get_together_embedding
-from src.lattice.compiler.types import Function
-from src.lattice.logger import logger
-from paths import ROOT_PROJECT_PATH
+from ..llm.together import get_together_chat_response, get_together_embedding
+from ..compiler.types import Function
+from ..logger import logger
+from ..retrieve import prompts
 
 
 def index(
@@ -127,12 +127,8 @@ def index_project(
     together_embedding_model_name = clients["embedding"]["model"]
 
     # reading prompt templates
-    config = configparser.ConfigParser()
-    config.read(
-        os.path.join(ROOT_PROJECT_PATH, "src", "lattice", "config", "prompt.ini")
-    )
-    keyword_extraction_prompt_template = config["prompts"]["keyword_extraction"]
-    description_extraction_prompt_template = config["prompts"]["description_extraction"]
+    keyword_extraction_prompt_template = prompts.keyword_extraction
+    description_extraction_prompt_template = prompts.description_extraction
 
     # reading raw data and creating dataframes
     entity_dict = {

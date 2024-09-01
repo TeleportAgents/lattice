@@ -12,8 +12,7 @@ from together import Together
 from openai import OpenAI
 from rank_bm25 import BM25Okapi
 
-from src.lattice.llm.together import get_together_chat_response, get_together_embedding
-from paths import ROOT_PROJECT_PATH
+from ..llm.together import get_together_chat_response, get_together_embedding
 
 
 def get_db_data(
@@ -227,4 +226,5 @@ def main():
 
 
 if __name__ == "__main__":
+    from paths import ROOT_PROJECT_PATH
     main()

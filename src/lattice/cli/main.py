@@ -7,11 +7,10 @@ import json
 from together import Together
 from openai import OpenAI
 from dotenv import load_dotenv
-from src.lattice.compiler.digest import iterate_over_functions_project
-from src.lattice.indexer.local import index_project
-from src.lattice.logger import logger
-from src.lattice.retrieve import get_db_data, retrieve
-from paths import ROOT_PROJECT_PATH
+from ..compiler.digest import iterate_over_functions_project
+from ..indexer.local import index_project
+from ..logger import logger
+from ..retrieve import get_db_data, retrieve, prompts
 
 
 @click.group()
@@ -42,11 +41,7 @@ def search(path, query, verbose):
     entity, _ = get_db_data(entity_path)
 
     # reading prompt templates
-    config = configparser.ConfigParser()
-    config.read(
-        os.path.join(ROOT_PROJECT_PATH, "src", "lattice", "config", "prompt.ini")
-    )
-    keyword_extraction_prompt_template = config["prompts"]["keyword_extraction"]
+    keyword_extraction_prompt_template = prompts.keyword_extraction
 
     num_keywords = 10
     result = retrieve(
