@@ -54,10 +54,13 @@ def search(path, query, verbose):
         together_llm_model_name=together_llm_model_name,
         together_embedding_client=together_embedding_client,
         together_embedding_model_name=together_embedding_model_name,
+        project_path=path,
         score_type="normalized_l2_score"
     )
 
-    click.echo(json.dumps(result, indent=4))
+    click.echo(f"function name: {result['function_name']}")
+    click.echo(f"description: {result['description']}")
+    click.echo(f"definition: {result['definition']}")
     
 
 def read_prompt(config_path):
@@ -82,7 +85,7 @@ def get_ai_clients():
     return {
         "llm":{
             "client":Together(api_key=together_api_key),
-            "model":"meta-llama/Llama-3-70b-chat-hf"
+            "model":"meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"
         },
         "embedding":{
             "client":OpenAI(api_key=together_api_key, base_url="https://api.together.xyz/v1"),

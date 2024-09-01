@@ -86,8 +86,8 @@ def retrieve(
         together_llm_model_name: str,
         together_embedding_client: Union[OpenAI],
         together_embedding_model_name: str,
+        project_path: str,
         score_type: str = "normalized_inner_product_score",
-
 ) -> Dict:
     assert score_type in ["normalized_inner_product_score", "normalized_l2_score"], \
         "The argument score_type must be either 'normalized_inner_product_score' or 'normalized_l2_score'."
@@ -101,7 +101,7 @@ def retrieve(
     # query processing
     query_hash_object = hashlib.md5(query.encode())
     query_hash = query_hash_object.hexdigest()
-    query_path = f"query_{query_hash}.csv"
+    query_path = os.path.join(project_path,".lattice",f"query_{query_hash}.csv")
     if os.path.isfile(query_path):
         # loading query embeddings and keywords
         query_data = pd.read_csv(query_path)
@@ -189,6 +189,7 @@ def main():
         together_llm_model_name=together_llm_model_name,
         together_embedding_client=together_embedding_client,
         together_embedding_model_name=together_embedding_model_name,
+        project_path="./",
         score_type="normalized_l2_score"
     )
     print("Input Query:")
