@@ -8,7 +8,7 @@ ENTITY = {
         "89af578c-f0fa-4600-bb21-b862e127132a",
         "ab9b9d3f-4f2f-4501-854b-827d0ca93365",
         "f9019878-be11-4772-a83d-68b0db6223cc",
-        "064d179b-4940-4c11-acfc-3afff005591d"
+        "064d179b-4940-4c11-acfc-3afff005591d",
     ],
     "function_name": [
         "main",
@@ -19,7 +19,7 @@ ENTITY = {
         "calculate_average",
         "rating_distribution",
         "visualize_word_counts",
-        "visualize_rating_distribution"
+        "visualize_rating_distribution",
     ],
     "namespace": [
         "src.lattice.retrieve.example_scenario_1",
@@ -243,8 +243,8 @@ ENTITY = {
             ax.set_ylabel('Proportion')
             plt.tight_layout()
             return fig
-        """
-    ]
+        """,
+    ],
 }
 RELATIONSHIP = {
     "id": [
@@ -254,8 +254,7 @@ RELATIONSHIP = {
         "b5800ca1-f089-4b0e-b0db-59fda6a5ee9a",
         "facdebf8-c48d-4dcb-b18d-2f9363091cd6",
         "f9e0dec1-7f98-49a8-bcf8-e6d1118d1ebd",
-        "3817de3b-3eba-4aa3-a62b-061b746558c5"
-
+        "3817de3b-3eba-4aa3-a62b-061b746558c5",
     ],
     "source_id": [
         "87385df0-d775-4400-a07e-fdf811903c1b",
@@ -264,7 +263,7 @@ RELATIONSHIP = {
         "71166b7b-1443-4dd7-a1bc-8139c23aa44c",
         "71166b7b-1443-4dd7-a1bc-8139c23aa44c",
         "87385df0-d775-4400-a07e-fdf811903c1b",
-        "87385df0-d775-4400-a07e-fdf811903c1b"
+        "87385df0-d775-4400-a07e-fdf811903c1b",
     ],
     "target_id": [
         "6e7750e7-e87f-4e87-93df-c5e33ac7b7a1",
@@ -273,17 +272,9 @@ RELATIONSHIP = {
         "89af578c-f0fa-4600-bb21-b862e127132a",
         "ab9b9d3f-4f2f-4501-854b-827d0ca93365",
         "f9019878-be11-4772-a83d-68b0db6223cc",
-        "064d179b-4940-4c11-acfc-3afff005591d"
+        "064d179b-4940-4c11-acfc-3afff005591d",
     ],
-    "line_number": [
-        237,
-        57,
-        240,
-        126,
-        127,
-        249,
-        250
-    ],
+    "line_number": [237, 57, 240, 126, 127, 249, 250],
     "arguments": [
         "texts: List[str]",
         "texts: List[str]",
@@ -291,7 +282,7 @@ RELATIONSHIP = {
         "ratings: List[int]",
         "ratings: List[int]",
         "positive: List[str], negative: List[str]",
-        "distribution: Dict[str, int]"
+        "distribution: Dict[str, int]",
     ],
     "returns": [
         "Tuple[List[str], List[str]]",
@@ -300,6 +291,6 @@ RELATIONSHIP = {
         "float",
         "Dict[str, int]",
         "plt.Figure",
-        "plt.Figure"
-    ]
+        "plt.Figure",
+    ],
 }
