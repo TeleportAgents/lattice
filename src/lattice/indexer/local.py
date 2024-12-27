@@ -12,7 +12,7 @@ from together import Together
 from openai import OpenAI
 
 from ..llm.together import get_together_chat_response, get_together_embedding
-from ..compiler.types import Function
+from ..compiler.uml_types import Function
 from ..logger import logger
 from ..retrieve import prompts
 

@@ -1,4 +1,4 @@
-description_extraction = '''You are and expert software engineering having deep knowledge about all parts of
+description_extraction = """You are and expert software engineering having deep knowledge about all parts of
                          software development.
                          I want you to read this code and give a thorough explanation of what it does.
                          I want to use these explanations to index the code in a RAG system to retrieve this
@@ -9,9 +9,9 @@ description_extraction = '''You are and expert software engineering having deep 
                          }}
                          I don't want any further explanation. ONLY RETURN THE PYTHON DICT ANSWER.
                          CODE:
-                         {definition}'''
+                         {definition}"""
 
-keyword_extraction = '''You are an AI assistant specialized in all fields of Python software engineering,
+keyword_extraction = """You are an AI assistant specialized in all fields of Python software engineering,
                      You have a vast range of skills in Python including:
                      web development, front-end development, backend development,
                      network engineering, cloud engineering,
@@ -54,4 +54,4 @@ keyword_extraction = '''You are an AI assistant specialized in all fields of Pyt
 
                      IMPORTANT NOTE: DO NOT OUTPUT ANY OTHER EXPLANATIONS. ONLY RETURN THE PYTHON DICTIONARY.
                      IMPORTANT NOTE: MAKE SURE THERE ARE NO SYNTAX ERRORS IN THE PYTHON DICTIONARY.
-                     OUTPUT:'''
+                     OUTPUT:"""

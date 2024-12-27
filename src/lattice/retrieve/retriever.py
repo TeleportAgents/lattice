@@ -227,4 +227,5 @@ def main():
 
 if __name__ == "__main__":
     from paths import ROOT_PROJECT_PATH
+
     main()
