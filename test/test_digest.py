@@ -1,3 +1,4 @@
+from pathlib import Path
 import unittest
 import jedi
 
@@ -7,17 +8,21 @@ from src.lattice.compiler.digest import (
     expand_definition,
     iterate_over_functions_script,
     iterate_over_functions_project,
+    iterate_over_files,
 )
+
+props = Path(__file__).parent / "props"
 
 
 class TestDigest(unittest.TestCase):
+
     def setUp(self) -> None:
         # Load the script from the file
-        with open("test/props/digest_main.py", "r") as f:
+        with open(props / "digest_main.py", "r") as f:
             source = f.read()
 
         # Use Jedi to parse the source code
-        self.script = jedi.Script(source, path="test/props/digest_main.py")
+        self.script = jedi.Script(source, path=props / "digest_main.py")
 
     def test_digest_exceptions(self) -> None:
         with self.assertRaises(ValueError):
@@ -59,9 +64,10 @@ class TestDigest(unittest.TestCase):
         for f in iterate_over_functions_project("test/props/example_directory"):
             self.assertIn(f.name, true_names)
 
-    def test_literal_to_standard(self) -> None:
-        definition = "def main(*args):\n    print(sum(args))"
-        semantic = literal_to_standard(definition)
+    def test_iterate_over_files(self) -> None:
+        filepaths = []
 
-        true_semantic = "def main(*args):\n    sum_args = sum(args)\n   print(sum_args)"
-        self.assertEqual(semantic, true_semantic)
+        for filepath in iterate_over_files(props):
+            filepaths.append(filepath)
+
+        self.assertEqual(len(filepaths), 4)
