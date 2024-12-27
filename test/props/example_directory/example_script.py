@@ -1,6 +1,7 @@
 from typing import List, Tuple
 
-from example_child.example_deep_script import extract_words, categorize_words
+from example_child import extract_words
+from example_child.example_deep_script import categorize_words
 
 
 def analyze_text_reviews(texts: List[str]) -> Tuple[List[str], List[str]]:

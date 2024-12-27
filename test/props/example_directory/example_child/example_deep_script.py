@@ -49,3 +49,7 @@ def categorize_words(words: List[str]) -> Tuple[List[str], List[str]]:
             negative.append(word)
 
     return positive, negative
+
+
+def extract_and_categorize(texts: List[str]) -> Tuple[List[str], List[str]]:
+    return categorize_words(extract_words(texts))

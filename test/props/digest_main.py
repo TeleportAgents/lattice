@@ -1,8 +1,15 @@
 import argparse
 
+from example_directory.example_script import analyze_text_reviews
+
 
 def main(*args):
-    print(sum(args))
+    def action():
+        return sum(args)
+
+    print(action())
+
+    positive, negative = analyze_text_reviews(["first", "second"])
 
 
 if __name__ == "__main__":

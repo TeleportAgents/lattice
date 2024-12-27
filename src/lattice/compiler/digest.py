@@ -1,11 +1,16 @@
-from typing import Iterator
+from typing import Iterator, Any
 
 import ast
 from os import walk, path
+import logging
 
-import jedi
+import jedi as jd
+from neo4j import Driver, Transaction
 
-from .types import Function
+from .uml_types import Function
+
+
+logger = logging.getLogger("lattice")
 
 
 def read_from_script(script_path: str, start_line: int, end_line: int) -> str:
@@ -21,7 +26,7 @@ def read_from_source(source: str, start_line: int, end_line: int) -> str:
     return "\n".join(lines)
 
 
-def extract_definition(script: jedi.Script, name: str) -> str:
+def extract_definition(script: jd.Script, name: str) -> str:
     function_definitions = [name for name in script.search(name)]
 
     if not function_definitions:
@@ -51,7 +56,7 @@ def analyze_function(file_path, function_name):
         source = f.read()
 
     # Use Jedi to parse the source code
-    script = jedi.Script(source, path=file_path)
+    script = jd.Script(source, path=file_path)
 
     # Find the specified function definition
     function_definitions = [name for name in script.search(function_name)]
@@ -124,15 +129,144 @@ def iterate_over_functions_project(
             yield f
 
 
-# # Example usage
-# file_path = 'path_to_your_python_file.py'
-# function_name = 'your_function_name'
+def iterate_over_files(directory: str, deep=True, exclude=[], root="") -> Iterator[str]:
+    _, directories, files = next(walk(directory))
+    for file in files:
+        if file.split(".")[-1] == "py":
+            file_path = path.join(root, file)
+            yield file_path
+    if not deep:
+        return
 
-# try:
-#     function_source, function_calls = analyze_function(file_path, function_name)
-#     print("Function Source:\n", function_source)
-#     print("\nFunction Calls:")
-#     for call in function_calls:
-#         print(f"Function '{call['name']}' is called and defined in {call['path']}")
-# except ValueError as e:
-#     print(e)
+    for child_directory in directories:
+        if child_directory in exclude:
+            continue
+        dir_path = path.join(directory, child_directory)
+        root_path = path.join(root, child_directory)
+        for filepath in iterate_over_files(dir_path, exclude=exclude, root=root_path):
+            yield filepath
+
+
+def neo4j_insert_ast(driver: Driver, filepath: str, name: str, parent_id: str):
+    def add_ast_node(tx: Transaction, node: Any, parent_id: str, **kwargs):
+        if isinstance(node, ast.Load):
+            return
+
+        node_label = type(node).__name__
+        node_properties = {
+            k: v
+            for k, v in vars(node).items()
+            if isinstance(v, (str, int, float, bool))
+        }
+        node_properties.update(kwargs)
+
+        if len(node_properties) > 0:
+            create_node_query = f"CREATE (n:{node_label} {{uuid: randomUUID(), {', '.join(f'{k}: ${k}' for k in node_properties.keys())}}}) RETURN n.uuid"
+        else:
+            create_node_query = (
+                f"CREATE (n:{node_label} {{uuid: randomUUID()}}) RETURN n.uuid"
+            )
+
+        node_id = tx.run(create_node_query, **node_properties).single().value()
+
+        create_relationship_query = "MATCH (p), (c) WHERE p.uuid = $parent_id AND c.uuid = $id CREATE (p)-[:HAS_CHILD]->(c)"
+        tx.run(create_relationship_query, parent_id=parent_id, id=node_id)
+
+        for child in ast.iter_child_nodes(node):
+            add_ast_node(tx, child, node_id)
+
+    with open(filepath, "r") as file:
+        source = file.read()
+
+    tree = ast.parse(source)
+
+    with driver.session() as session:
+        session.execute_write(
+            add_ast_node, tree, parent_id, name=name, filepath=filepath
+        )
+
+
+def neo4j_digest_project(driver: Driver, rootpath: str, project_name: str, exclude=[]):
+    def digest_directory(directory: str, parent_id: str):
+        _, directories, files = next(walk(directory))
+
+        for file in files:
+            file_name, file_extension = file.split(".")
+            if file_extension == "py":
+                neo4j_insert_ast(
+                    driver, path.join(directory, file), file_name, parent_id
+                )
+
+        for child_directory in directories:
+            if child_directory in exclude:
+                continue
+
+            dir_path = path.join(directory, child_directory)
+            digest_directory(dir_path, parent_id)
+
+    project = jd.Project(rootpath)
+    project.save()
+
+    with driver.session() as session:
+        node_id = (
+            session.run(
+                "CREATE (p:Project {uuid: randomUUID(), rootpath:$rootpath, name:$name}) RETURN p.uuid",
+                rootpath=rootpath,
+                name=project_name,
+            )
+            .single()
+            .value()
+        )
+
+    digest_directory(rootpath, node_id)
+
+
+def neo4j_create_call_shortcuts(driver: Driver, project_name: str):
+    with driver.session() as session:
+        get_project_query = """
+        MATCH (p:Project {name: $name})
+        RETURN p
+        """
+        project_node = session.run(get_project_query, name=project_name).single(
+            strict=True
+        )["p"]
+        project_node_id = project_node["uuid"]
+        project = jd.Project.load(project_node["rootpath"])
+
+        get_funcdefs_query = """
+        MATCH (:Project {uuid: $uuid})-[:HAS_CHILD*]->(m:Module)-[:HAS_CHILD*]->(f:FunctionDef)
+        RETURN m.filepath, f.uuid, f.lineno, f.col_offset
+        """
+        funcdefs_results = session.run(
+            get_funcdefs_query, uuid=project_node_id
+        ).values()
+        for filepath, uuid, lineno, col_offset in funcdefs_results:
+            with open(filepath, "rb") as file:
+                source = file.read()
+
+            script = jd.Script(source, path=filepath, project=project)
+            for ref in script.get_references(lineno, col_offset + 4):
+                if ref.type == "function":
+                    continue
+                if ref.type == "statement":
+                    create_caller_shortcut = """
+                    MATCH (t:FunctionDef {uuid: $node_id})
+                    WITH t
+                    MATCH (m:Module {filepath: $filepath})-[:HAS_CHILD*]->(h: FunctionDef)-[:HAS_CHILD*]->(c: Call)-[:HAS_CHILD]->(:Name {id: $name})
+                    WHERE c.lineno = $line AND c.col_offset = $column
+                    CREATE (h)-[rel:CALLS]->(t)
+                    RETURN count(rel)
+                    """
+                    rel_count = (
+                        session.run(
+                            create_caller_shortcut,
+                            filepath=str(ref.module_path),
+                            name=ref.name,
+                            line=ref.line,
+                            column=ref.column,
+                            node_id=uuid,
+                        )
+                        .single()
+                        .value()
+                    )
+                    print(f"added {rel_count} relations")
