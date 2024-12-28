@@ -249,19 +249,34 @@ def neo4j_create_call_shortcuts(driver: Driver, project_name: str):
 
             references_iters = []
 
-            references_iters.append(filter(lambda ref: ref.type == 'statement', script.get_references(lineno, col_offset + 4)))
+            references_iters.append(
+                filter(
+                    lambda ref: ref.type == "statement",
+                    script.get_references(lineno, col_offset + 4),
+                )
+            )
 
-            if name == '__init__':
-                get_classdef_query = '''
+            if name == "__init__":
+                get_classdef_query = """
                 MATCH (c:ClassDef)-[:HAS_CHILD]->(f:FunctionDef {uuid: $uuid})
                 RETURN c.lineno, c.col_offset
-                '''
+                """
                 classdef_results = session.run(get_classdef_query, uuid=uuid).values()
 
                 for cd_lineno, cd_col_offset in classdef_results:
-                    references_iters.append(filter(lambda ref: ref.type == 'statement', script.get_references(cd_lineno, cd_col_offset + 6)))
-            
-            references = list(map(lambda ref: {'filepath': str(ref.module_path), 'lineno': ref.line}, chain(*references_iters)))
+                    references_iters.append(
+                        filter(
+                            lambda ref: ref.type == "statement",
+                            script.get_references(cd_lineno, cd_col_offset + 6),
+                        )
+                    )
+
+            references = list(
+                map(
+                    lambda ref: {"filepath": str(ref.module_path), "lineno": ref.line},
+                    chain(*references_iters),
+                )
+            )
 
             create_caller_shortcut = """
             MATCH (t:FunctionDef {uuid: $node_id})
@@ -273,11 +288,7 @@ def neo4j_create_call_shortcuts(driver: Driver, project_name: str):
             RETURN count(rel)
             """
             rel_count = (
-                session.run(
-                    create_caller_shortcut,
-                    node_id=uuid,
-                    refs=references
-                )
+                session.run(create_caller_shortcut, node_id=uuid, refs=references)
                 .single()
                 .value()
             )
