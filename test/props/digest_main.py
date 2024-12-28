@@ -1,6 +1,6 @@
 import argparse
 
-from example_directory.example_script import analyze_text_reviews
+from example_directory.example_script import analyze_text_reviews, ExampleClass
 
 
 def main(*args):
@@ -10,6 +10,12 @@ def main(*args):
     print(action())
 
     positive, negative = analyze_text_reviews(["first", "second"])
+
+    instance = ExampleClass(positive)
+
+    sum_pn = instance.method(negative)
+
+    print(sum_pn)
 
 
 if __name__ == "__main__":

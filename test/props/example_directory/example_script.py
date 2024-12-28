@@ -4,6 +4,14 @@ from example_child import extract_words
 from example_child.example_deep_script import categorize_words
 
 
+class ExampleClass:
+    def __init__(self, attribute: int):
+        self.attribute = attribute
+
+    def method(self, arg: int):
+        return self.attribute + arg
+
+
 def analyze_text_reviews(texts: List[str]) -> Tuple[List[str], List[str]]:
     """
     Analyze the text reviews to extract and categorize words.
