@@ -2,6 +2,7 @@ from typing import Iterator, Any
 
 import ast
 from os import walk, path
+from itertools import chain
 import logging
 
 import jedi as jd
@@ -235,38 +236,49 @@ def neo4j_create_call_shortcuts(driver: Driver, project_name: str):
 
         get_funcdefs_query = """
         MATCH (:Project {uuid: $uuid})-[:HAS_CHILD*]->(m:Module)-[:HAS_CHILD*]->(f:FunctionDef)
-        RETURN m.filepath, f.uuid, f.lineno, f.col_offset
+        RETURN m.filepath, f.name, f.uuid, f.lineno, f.col_offset
         """
         funcdefs_results = session.run(
             get_funcdefs_query, uuid=project_node_id
         ).values()
-        for filepath, uuid, lineno, col_offset in funcdefs_results:
+        for filepath, name, uuid, lineno, col_offset in funcdefs_results:
             with open(filepath, "rb") as file:
                 source = file.read()
 
             script = jd.Script(source, path=filepath, project=project)
-            for ref in script.get_references(lineno, col_offset + 4):
-                if ref.type == "function":
-                    continue
-                if ref.type == "statement":
-                    create_caller_shortcut = """
-                    MATCH (t:FunctionDef {uuid: $node_id})
-                    WITH t
-                    MATCH (m:Module {filepath: $filepath})-[:HAS_CHILD*]->(h: FunctionDef)-[:HAS_CHILD*]->(c: Call)-[:HAS_CHILD]->(:Name {id: $name})
-                    WHERE c.lineno = $line AND c.col_offset = $column
-                    CREATE (h)-[rel:CALLS]->(t)
-                    RETURN count(rel)
-                    """
-                    rel_count = (
-                        session.run(
-                            create_caller_shortcut,
-                            filepath=str(ref.module_path),
-                            name=ref.name,
-                            line=ref.line,
-                            column=ref.column,
-                            node_id=uuid,
-                        )
-                        .single()
-                        .value()
-                    )
-                    print(f"added {rel_count} relations")
+
+            references_iters = []
+
+            references_iters.append(filter(lambda ref: ref.type == 'statement', script.get_references(lineno, col_offset + 4)))
+
+            if name == '__init__':
+                get_classdef_query = '''
+                MATCH (c:ClassDef)-[:HAS_CHILD]->(f:FunctionDef {uuid: $uuid})
+                RETURN c.lineno, c.col_offset
+                '''
+                classdef_results = session.run(get_classdef_query, uuid=uuid).values()
+
+                for cd_lineno, cd_col_offset in classdef_results:
+                    references_iters.append(filter(lambda ref: ref.type == 'statement', script.get_references(cd_lineno, cd_col_offset + 6)))
+            
+            references = list(map(lambda ref: {'filepath': str(ref.module_path), 'lineno': ref.line}, chain(*references_iters)))
+
+            create_caller_shortcut = """
+            MATCH (t:FunctionDef {uuid: $node_id})
+            WITH t
+            UNWIND $refs AS ref
+            MATCH (m:Module {filepath: ref.filepath})-[:HAS_CHILD*]->(h: FunctionDef)
+            WHERE h.lineno < ref.lineno AND h.end_lineno >= ref.lineno
+            CREATE (h)-[rel:CALLS]->(t)
+            RETURN count(rel)
+            """
+            rel_count = (
+                session.run(
+                    create_caller_shortcut,
+                    node_id=uuid,
+                    refs=references
+                )
+                .single()
+                .value()
+            )
+            print(f"added {rel_count} relations")
