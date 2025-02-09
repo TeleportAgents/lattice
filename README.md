@@ -1,4 +1,4 @@
-# Soverant Lattice
+# Lattice
 
 ## Introduction
 
